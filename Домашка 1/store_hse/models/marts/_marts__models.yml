@@ -1,0 +1,240 @@
+version: 2
+models:
+- name: fct_orders
+  description: Одна строка — нетестовый заказ.
+  columns:
+  - name: order_id
+    description: Идентификатор заказа.
+    data_tests:
+    - unique
+    - not_null
+  - name: customer_id
+    description: Идентификатор клиента.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('dim_customers')
+          field: customer_id
+  - name: order_date
+    description: Дата оформления заказа.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('dim_dates')
+          field: date_day
+  - name: ordered_at
+    description: Время оформления заказа.
+    data_tests:
+    - not_null
+  - name: order_status
+    description: Статус заказа.
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - paid
+          - pending
+          - returned
+          - cancelled
+  - name: order_amount
+    description: Сумма заказа после скидок, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: paid_amount
+    description: Успешные оплаты без возвратов, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: refunded_amount
+    description: Возвраты положительным числом, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: net_paid_amount
+    description: Оплаты минус возвраты, руб.
+    data_tests:
+    - not_null
+  - name: successful_payments_count
+    description: Число успешных оплат без возвратов.
+    data_tests:
+    - not_null
+  - name: first_paid_at
+    description: Время первой успешной оплаты.
+  - name: is_confirmed
+    description: '{{ doc("confirmed_order") }}'
+    data_tests:
+    - not_null
+  - name: items_count
+    description: Число разных товаров в заказе.
+    data_tests:
+    - not_null
+    - non_negative
+- name: fct_order_items
+  description: Одна строка — товар в нетестовом заказе.
+  columns:
+  - name: order_item_id
+    description: Суррогатный ключ позиции из заказа и товара.
+    data_tests:
+    - unique
+    - not_null
+  - name: order_id
+    description: Идентификатор заказа.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('fct_orders')
+          field: order_id
+  - name: product_id
+    description: Идентификатор товара.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('dim_products')
+          field: product_id
+  - name: customer_id
+    description: Идентификатор клиента.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('dim_customers')
+          field: customer_id
+  - name: order_date
+    description: Дата оформления заказа.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('dim_dates')
+          field: date_day
+  - name: quantity
+    description: Количество единиц товара.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: unit_price
+    description: Цена единицы до скидки, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: discount_amount
+    description: Скидка на всю позицию, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: gross_amount
+    description: Количество × цена, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: line_amount
+    description: Стоимость позиции после скидки, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: is_confirmed
+    description: '{{ doc("confirmed_order") }}'
+    data_tests:
+    - not_null
+- name: dim_customers
+  description: Одна строка — клиент, включая не купивших.
+  columns:
+  - name: customer_id
+    description: Идентификатор клиента.
+    data_tests:
+    - unique
+    - not_null
+  - name: registered_at
+    description: Время регистрации клиента.
+    data_tests:
+    - not_null
+  - name: registration_date
+    description: Дата регистрации.
+    data_tests:
+    - not_null
+  - name: city
+    description: Город клиента.
+    data_tests:
+    - not_null
+  - name: acquisition_channel
+    description: Канал привлечения.
+    data_tests:
+    - not_null
+  - name: first_confirmed_order_id
+    description: Первый подтверждённый заказ по времени оформления; NULL без покупок.
+  - name: first_confirmed_at
+    description: Время оформления первого подтверждённого заказа.
+  - name: confirmed_orders_count
+    description: Число подтверждённых заказов.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: confirmed_revenue
+    description: Сумма order_amount подтверждённых заказов, руб.
+    data_tests:
+    - not_null
+    - non_negative
+  - name: is_buyer
+    description: Есть хотя бы одна подтверждённая покупка.
+    data_tests:
+    - not_null
+- name: dim_products
+  description: Одна строка — товар с иерархией категорий.
+  columns:
+  - name: product_id
+    description: Идентификатор товара.
+    data_tests:
+    - unique
+    - not_null
+  - name: product_name
+    description: Название товара.
+    data_tests:
+    - not_null
+  - name: brand
+    description: Бренд.
+    data_tests:
+    - not_null
+  - name: category_name
+    description: Непосредственная категория товара.
+    data_tests:
+    - not_null
+  - name: parent_category_name
+    description: Родитель категории; NULL у корня.
+  - name: root_category_name
+    description: Самый верхний уровень категории.
+    data_tests:
+    - not_null
+- name: dim_dates
+  description: Одна строка — день; непрерывный календарь всех дат заказов.
+  columns:
+  - name: date_day
+    description: Календарная дата.
+    data_tests:
+    - unique
+    - not_null
+  - name: year
+    description: Год.
+    data_tests:
+    - not_null
+  - name: quarter
+    description: Квартал, 1–4.
+    data_tests:
+    - not_null
+  - name: month
+    description: Месяц, 1–12.
+    data_tests:
+    - not_null
+  - name: day_of_week
+    description: День недели ISO, 1–7.
+    data_tests:
+    - not_null
+  - name: is_weekend
+    description: Суббота или воскресенье.
+    data_tests:
+    - not_null
