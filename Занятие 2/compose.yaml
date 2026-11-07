@@ -1,0 +1,28 @@
+name: practice2_sql_mart
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shop
+      POSTGRES_USER: student
+      POSTGRES_PASSWORD: studentpass
+    ports:
+      - "${PG_PORT:-5435}:5432"
+    volumes:
+      - practice2_pgdata:/var/lib/postgresql/data
+      # Копия лекционных скриптов лежит рядом с compose.yaml.
+      - type: bind
+        source: ./init
+        target: /docker-entrypoint-initdb.d
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U student -d shop"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  practice2_pgdata:
